@@ -1,0 +1,20 @@
+[project]
+name = "trading212-rest"
+authors = [
+    {name = "Marcin Szymanski", email = "ms32035@gmail.com"},
+]
+description = "Rest API client for Trading212"
+
+requires-python = ">=3.10"
+
+dependencies = [
+    "requests"
+]
+
+version = "0.1.0"
+
+[project.urls]
+homepage = "https://github.com/ms32035/trading212-rest"
+
+[tool.setuptools.packages.find]
+["trading212_rest*"]
