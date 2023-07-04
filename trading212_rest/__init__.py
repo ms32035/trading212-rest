@@ -44,22 +44,48 @@ class Trading212:
 
         return resp.json()
 
+    def _process_items(self, response):
+        res = []
+        res += response["items"]
+        while next_page := response.get("nextPagePath"):
+            response = self._get_url(next_page)
+            res += response["items"]
+
+        return res
+
     def orders(self, cursor: int = 0, ticker: str = None, limit: int = 50):
         """Historical order data"""
-        res = []
 
         params = {"cursor": cursor, "limit": limit}
         if ticker:
             params["ticker"] = ticker
 
-        resp = self._get("equity/history/orders", params=params)
-        res += resp["items"]
-        while next_page := resp.get("nextPagePath"):
-            resp = self._get_url(next_page)
-            res += resp["items"]
+        return self._process_items(self._get("equity/history/orders", params=params))
 
-        return res
+    def dividends(self, cursor: int = 0, ticker: str = None, limit: int = 50):
+        """Dividends paid out"""
+
+        params = {"cursor": cursor, "limit": limit}
+        if ticker:
+            params["ticker"] = ticker
+
+        return self._process_items(self._get("history/dividends", params=params))
+
+    def transactions(self, cursor: int = 0, limit: int = 50):
+        """Transactions list"""
+
+        params = {"cursor": cursor, "limit": limit}
+
+        return self._process_items(self._get("history/transactions", params=params))
 
     def instruments(self):
         """Tradeable instruments metadata"""
         return self._get("equity/metadata/instruments")
+
+    def cash(self):
+        """Account cash"""
+        return self._get("equity/account/cash")
+
+    def portfolio(self):
+        """All open positions"""
+        return self._get("equity/portfolio")
