@@ -34,6 +34,17 @@ class Trading212:
             )
         )
 
+    def _delete_url(
+        self,
+        url,
+    ):
+        return self._process_response(
+            requests.delete(
+                f"{self.host}/{url}",
+                headers={"Authorization": self.api_key},
+            )
+        )
+
     @staticmethod
     def _process_response(resp):
         try:
@@ -52,6 +63,11 @@ class Trading212:
             res += response["items"]
 
         return res
+
+    @staticmethod
+    def _validate_time_validity(time_validity: str):
+        if time_validity not in ["GTC", "DAY"]:
+            raise ValueError("time_validity must be one of GTC or DAY")
 
     def orders(self, cursor: int = 0, ticker: str = None, limit: int = 50):
         """Historical order data"""
@@ -89,3 +105,91 @@ class Trading212:
     def portfolio(self):
         """All open positions"""
         return self._get("equity/portfolio")
+
+    def position(self, ticker: str):
+        """Open position by ticker"""
+        return self._get(f"equity/portfolio" / {ticker})
+
+    def exchanges(self):
+        """Exhange list"""
+        return self._get("equity/metadata/exchanges")
+
+    def account_info(self):
+        """Account info"""
+        return self._get("equity/account/info")
+
+    def equity_orders(self):
+        """All equity orders"""
+        return self._get("equity/orders")
+
+    def equity_order(self, id: int):
+        """Equity order by ID"""
+        return self._get(f"equity/orders/{id}")
+
+    def equity_order_cancel(self, id: int):
+        """Camcel equity order"""
+        return self._delete_url(f"equity/orders/{id}")
+
+    def equity_order_place_limit(
+        self, ticker: str, quantity: int, limit_price: float, time_validity: str
+    ):
+        """Place limit order"""
+
+        self._validate_time_validity(time_validity)
+
+        return self.post(
+            f"equity/orders/limit",
+            params={
+                "quantity": quantity,
+                "limitPrice": limit_price,
+                "ticker": ticker,
+                "timeValidity": time_validity,
+            },
+        )
+
+    def equity_order_place_market(self, ticker: str, quantity: int):
+        """Place market order"""
+
+        return self.post(
+            f"equity/orders/market", params={"quantity": quantity, "ticker": ticker}
+        )
+
+    def equity_order_place_stop(
+        self, ticker: str, quantity: int, stop_price: float, time_validity: str
+    ):
+        """Place stop order"""
+
+        self._validate_time_validity(time_validity)
+
+        return self.post(
+            f"equity/orders/stop",
+            params={
+                "quantity": quantity,
+                "stopPrice": stop_price,
+                "ticker": ticker,
+                "timeValidity": time_validity,
+            },
+        )
+
+    def equity_order_place_stop_limit(
+        self,
+        ticker: str,
+        quantity: int,
+        stop_price: float,
+        limit_price: float,
+        time_validity: str,
+    ):
+        """Place stop-limit order"""
+
+        self._validate_time_validity(time_validity)
+
+        return self.post(
+            f"equity/orders/stop_limit",
+            params={
+                "quantity": quantity,
+                "stopPrice": stop_price,
+                "limitPrice": limit_price,
+                "ticker": ticker,
+                "timeValidity": time_validity,
+            },
+        )
