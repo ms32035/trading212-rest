@@ -23,6 +23,15 @@ class Trading212:
             )
         )
 
+    def _post(self, endpoint: str, data: dict, api_version: str = "v0"):
+        return self._process_response(
+            requests.post(
+                f"{self.host}/api/{api_version}/{endpoint}",
+                headers={"Authorization": self.api_key},
+                data=data,
+            )
+        )
+
     def _get_url(
         self,
         url,
@@ -108,7 +117,7 @@ class Trading212:
 
     def position(self, ticker: str):
         """Open position by ticker"""
-        return self._get(f"equity/portfolio" / {ticker})
+        return self._get(f"equity/portfolio/{ticker}")
 
     def exchanges(self):
         """Exhange list"""
@@ -137,9 +146,9 @@ class Trading212:
 
         self._validate_time_validity(time_validity)
 
-        return self.post(
+        return self._post(
             f"equity/orders/limit",
-            params={
+            data={
                 "quantity": quantity,
                 "limitPrice": limit_price,
                 "ticker": ticker,
@@ -150,8 +159,8 @@ class Trading212:
     def equity_order_place_market(self, ticker: str, quantity: int):
         """Place market order"""
 
-        return self.post(
-            f"equity/orders/market", params={"quantity": quantity, "ticker": ticker}
+        return self._post(
+            f"equity/orders/market", data={"quantity": quantity, "ticker": ticker}
         )
 
     def equity_order_place_stop(
@@ -161,9 +170,9 @@ class Trading212:
 
         self._validate_time_validity(time_validity)
 
-        return self.post(
+        return self._post(
             f"equity/orders/stop",
-            params={
+            data={
                 "quantity": quantity,
                 "stopPrice": stop_price,
                 "ticker": ticker,
@@ -183,9 +192,9 @@ class Trading212:
 
         self._validate_time_validity(time_validity)
 
-        return self.post(
+        return self._post(
             f"equity/orders/stop_limit",
-            params={
+            data={
                 "quantity": quantity,
                 "stopPrice": stop_price,
                 "limitPrice": limit_price,
