@@ -13,7 +13,7 @@ pip install trading212-rest
 ```python
 from trading212_rest import Trading212
 
-client = Trading212(token="your_api_token", demo=False)
+client = Trading212(api_key="your_api_token", demo=False)
 
 orders = client.orders()
 

@@ -9,7 +9,7 @@ class Trading212:
 
     def __init__(self, api_key: str, demo: bool = True):
         """ """
-        self.api_key = api_key
+        self._api_key = api_key
         self.host = (
             "https://live.trading212.com" if demo else "https://live.trading212.com"
         )
@@ -18,7 +18,7 @@ class Trading212:
         return self._process_response(
             requests.get(
                 f"{self.host}/api/{api_version}/{endpoint}",
-                headers={"Authorization": self.api_key},
+                headers={"Authorization": self._api_key},
                 params=params,
             )
         )
@@ -27,7 +27,7 @@ class Trading212:
         return self._process_response(
             requests.post(
                 f"{self.host}/api/{api_version}/{endpoint}",
-                headers={"Authorization": self.api_key},
+                headers={"Authorization": self._api_key},
                 data=data,
             )
         )
@@ -39,7 +39,7 @@ class Trading212:
         return self._process_response(
             requests.get(
                 f"{self.host}/{url}",
-                headers={"Authorization": self.api_key},
+                headers={"Authorization": self._api_key},
             )
         )
 
@@ -50,7 +50,7 @@ class Trading212:
         return self._process_response(
             requests.delete(
                 f"{self.host}/{url}",
-                headers={"Authorization": self.api_key},
+                headers={"Authorization": self._api_key},
             )
         )
 
@@ -201,4 +201,9 @@ class Trading212:
                 "ticker": ticker,
                 "timeValidity": time_validity,
             },
+        )
+
+    def __repr__(self):
+        return "Trading212(api_key=****{}, demo={})".format(
+            self._api_key[-4:], self.host == "https://demo.trading212.com"
         )
