@@ -1,5 +1,5 @@
 import logging
-
+from datetime import datetime
 import requests
 from requests.exceptions import HTTPError
 
@@ -78,6 +78,45 @@ class Trading212:
         if time_validity not in ["GTC", "DAY"]:
             raise ValueError("time_validity must be one of GTC or DAY")
 
+    @staticmethod
+    def _validate_date(date_text: str):
+        try:
+            # Attempt to parse the date string
+            datetime.strptime(date_text, "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            raise ValueError("Incorrect date format, should be YYYY-MM-DDTHH:MM:SSZ")
+    
+    @staticmethod
+    def _validate_dividend_cash_action(dividend_cash_action:str):
+        valid_actions = ["REINVEST", "TO_ACCOUNT_CASH"]
+        if dividend_cash_action not in valid_actions:
+            raise ValueError(f"dividendCashAction must be one of {valid_actions}")
+
+    @staticmethod
+    def _validate_icon(icon:str):
+        valid_icons = [
+            "Home", "PiggyBank", "Iceberg", "Airplane", "RV", "Unicorn", "Whale", "Convertable", "Family",
+            "Coins", "Education", "BillsAndCoins", "Bills", "Water","Wind", "Car", "Briefcase", "Medical",
+            "Landscape", "Child", "Vault", "Travel", "Cabin", "Apartments", "Burger", "Bus", "Energy", 
+            "Factory", "Global", "Leaf", "Materials", "Pill", "Ring", "Shipping", "Storefront", "Tech", "Umbrella"]
+
+        if icon not in valid_icons:
+            raise ValueError(f"icon must be one of {valid_icons}")
+    
+    @staticmethod
+    def _validate_instrument_shares(instrument_shares):
+        if not isinstance(instrument_shares, dict):
+            raise TypeError("instrument_shares must be a dictionary")
+        if not instrument_shares:
+            raise ValueError("instrument_shares cannot be empty")
+        for key, value in instrument_shares.items():
+            if not isinstance(key, str):
+                raise TypeError("Instrument identifiers must be strings")
+            if not isinstance(value, (int, float)):
+                raise TypeError("Number of shares must be a number")
+            if value <= 0:
+                raise ValueError("Number of shares must be greater than zero")
+
     def orders(self, cursor: int = 0, ticker: str = None, limit: int = 50):
         """Historical order data"""
 
@@ -95,6 +134,39 @@ class Trading212:
             params["ticker"] = ticker
 
         return self._process_items(self._get("history/dividends", params=params))
+
+    def export(self):
+        """Fetches all Account exports as a List"""
+        return self._get("history/exports")
+    
+    def export_csv(
+        self,
+        time_from: datetime,
+        time_to: datetime,
+        include_dividends: bool = True,
+        include_interest: bool = True,
+        include_orders: bool = True,
+        include_transactions = True,
+    ):
+        """Request a csv export of the account's orders, dividends and transactions history"""
+        # Format the date-time parameters to ISO 8601 strings
+        time_from_str = time_from.strftime("%Y-%m-%dT%H:%M:%SZ")
+        time_to_str = time_to.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        return self._post(
+            "/history/exports",
+            data={
+                "dataIncluded": {
+                "includeDividends": include_dividends,
+                "includeInterest": include_interest,
+                "includeOrders": include_orders,
+                "includeTransactions": include_transactions
+                },  
+                "timeFrom": time_from_str,
+                "timeTo": time_to_str
+            },
+        )
+
 
     def transactions(self, cursor: int = 0, limit: int = 50):
         """Transactions list"""
@@ -136,11 +208,15 @@ class Trading212:
         return self._get(f"equity/orders/{id}")
 
     def equity_order_cancel(self, id: int):
-        """Camcel equity order"""
+        """Cancel equity order"""
         return self._delete_url(f"equity/orders/{id}")
 
     def equity_order_place_limit(
-        self, ticker: str, quantity: int, limit_price: float, time_validity: str
+        self, 
+        ticker: str, 
+        quantity: int, 
+        limit_price: float, 
+        time_validity: str
     ):
         """Place limit order"""
 
@@ -156,7 +232,11 @@ class Trading212:
             },
         )
 
-    def equity_order_place_market(self, ticker: str, quantity: int):
+    def equity_order_place_market(
+        self,
+        ticker: str, 
+        quantity: int
+    ):
         """Place market order"""
 
         return self._post(
@@ -164,7 +244,11 @@ class Trading212:
         )
 
     def equity_order_place_stop(
-        self, ticker: str, quantity: int, stop_price: float, time_validity: str
+        self, 
+        ticker: str,
+        quantity: int, 
+        stop_price: float, 
+        time_validity: str
     ):
         """Place stop order"""
 
@@ -202,6 +286,78 @@ class Trading212:
                 "timeValidity": time_validity,
             },
         )
+
+    def pies(self):
+        """Fetch all Pies"""
+        return self._get("equity/pies")
+    
+    def pie_create(
+        self,
+        dividend_cash_action: str,
+        end_date: datetime,
+        goal: int,
+        icon: str,
+        instrument_shares: dict,
+        name: str
+    ):
+        """Create a Pie"""
+        self._validate_dividend_cash_action(dividend_cash_action)
+        self._validate_icon(icon)
+        self._validate_date(end_date)
+        self._validate_instrument_shares(instrument_shares)
+        
+        return self._post(
+            f"/equity/pies",
+            data={
+                "dividendCashAction": dividend_cash_action,
+                "endDate": end_date,
+                "goal": goal,
+                "icon": icon,
+                "instrumentShares": instrument_shares,
+                "name": name
+            },
+        )
+    
+    def pie_delete(self, id: int):
+        """Delete Pie by ID"""
+        return self._delete_url(f"/equity/pies/{id}")
+    
+    def pie(self, id:int):
+        """Fetch Pie by ID"""
+        return self._get(f"/equity/pies/{id}")
+    
+    def pie_update(
+        self,
+        id:int,
+        dividend_cash_action: str,
+        end_date: str,
+        goal: int,
+        icon: str,
+        instrument_shares: dict,
+        name: str
+    ):
+        """Update existing Pie"""
+        self._validate_dividend_cash_action(dividend_cash_action)
+        self._validate_icon(icon)
+        self._validate_date(end_date)
+        self._validate_instrument_shares(instrument_shares)
+
+        return self._post(
+            f"equity/pies/{id}",
+            data={
+                "dividendCashAction": dividend_cash_action,
+                "endDate": end_date,
+                "goal":goal,
+                "icon": icon,
+                "instrumentShares": instrument_shares,
+                "name": name
+            },
+        )
+        
+
+        
+
+
 
     def __repr__(self):
         return "Trading212(api_key=****{}, demo={})".format(
