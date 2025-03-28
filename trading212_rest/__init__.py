@@ -11,7 +11,7 @@ class Trading212:
         """ """
         self._api_key = api_key
         self.host = (
-            "https://live.trading212.com" if demo else "https://live.trading212.com"
+            "https://demo.trading212.com" if demo else "https://live.trading212.com"
         )
 
     def _get(self, endpoint: str, params=None, api_version: str = "v0"):
